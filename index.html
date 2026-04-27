@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nico Tapia - Performance Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { background-color: #fcfcf9; font-family: 'Inter', sans-serif; }
+        .chart-container { position: relative; width: 100%; height: 280px; }
+        .italic-black { font-style: italic; font-weight: 900; text-transform: uppercase; letter-spacing: -0.04em; }
+        
+        /* Aumento de tamaño en inputs */
+        .rpe-input {
+            @apply w-24 bg-white border-2 border-orange-200 text-center text-3xl font-black text-orange-600 rounded-2xl py-3 focus:outline-none focus:border-orange-500 focus:ring-8 focus:ring-orange-500/10 transition-all;
+        }
+
+        .card-pro {
+            @apply bg-white rounded-[2.5rem] border-2 border-stone-100 p-8 flex flex-col lg:flex-row items-center gap-8 shadow-sm mb-6 transition-all hover:border-orange-200;
+        }
+
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="text-stone-800 antialiased">
+
+    <div class="max-w-6xl mx-auto px-4 py-10">
+        
+        <header class="flex flex-col md:flex-row md:items-end justify-between mb-10 border-b-4 pb-10 border-stone-100">
+            <div class="space-y-2">
+                <div class="flex items-center gap-3">
+                    <span id="atleta-nombre" class="bg-black text-white text-xs font-black px-3 py-1 rounded tracking-tighter uppercase italic">CARGANDO...</span>
+                    <span id="atleta-objetivo" class="text-orange-600 font-black text-xs uppercase tracking-widest italic">• OBJETIVO</span>
+                </div>
+                <h1 class="text-6xl italic-black text-stone-900 leading-none">
+                    SESIÓN <span id="sesion-num" class="text-orange-600">#--</span>
+                </h1>
+                <p id="fecha-actual" class="text-stone-400 font-black italic text-lg uppercase tracking-tighter">--/--/--</p>
+            </div>
+            <div class="mt-8 md:mt-0">
+                <div id="status-badge" class="text-xs font-black text-green-600 border-2 border-green-100 rounded-full px-8 py-3 uppercase tracking-widest italic flex items-center gap-3 bg-green-50">
+                    <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span> SISTEMA LIVE
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-12">
+            <div class="lg:col-span-3 bg-white rounded-[3rem] shadow-sm border-2 border-stone-100 p-10">
+                <h2 class="text-xs font-black text-stone-400 uppercase tracking-widest italic mb-8">Gráfica de Esfuerzo Percibido</h2>
+                <div class="chart-container">
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="bg-stone-900 text-white rounded-[3rem] p-10 shadow-2xl flex flex-col justify-center items-center text-center">
+                <h3 class="text-orange-500 font-black uppercase text-xs tracking-widest mb-4 italic">Carga Total</h3>
+                <div class="text-8xl italic-black text-white" id="weekly-avg">0.0</div>
+                <div class="text-xs text-stone-500 uppercase font-black tracking-widest mt-4">RPE MEDIO</div>
+            </div>
+        </div>
+
+        <div id="workout-container" class="space-y-6 pb-24">
+            </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://shutiqoewzforhebaxsd.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNodXRpcW9ld3pmb3JoZWJheHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMTA1MzAsImV4cCI6MjA5Mjg4NjUzMH0.SHRjH_oeirCQqXU7WIOsnBMadDKHXuUvaTMLjH7a5-A'; 
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let performanceChart;
+
+        async function initDashboard() {
+            const { data: atleta } = await _supabase.from('atletas').select('*').limit(1).single();
+            if (atleta) {
+                document.getElementById('atleta-nombre').innerText = atleta.nombre;
+                document.getElementById('atleta-objetivo').innerText = `• ${atleta.objetivo}`;
+                document.getElementById('sesion-num').innerText = `#0${atleta.id}`;
+            }
+            
+            const hoy = new Date();
+            document.getElementById('fecha-actual').innerText = hoy.toLocaleDateString('es-ES', { 
+                weekday: 'long', day: 'numeric', month: 'long'
+            });
+
+            await fetchWorkoutData();
+        }
+
+        async function fetchWorkoutData() {
+            const container = document.getElementById('workout-container');
+            const { data: plan } = await _supabase.from('planificacion').select(`id, series, repeticiones, descanso, ejercicios ( nombre, grupo_muscular, categoria )`);
+            const { data: logs } = await _supabase.from('seguimiento').select('rpe_esfuerzo, id_sesion');
+
+            container.innerHTML = plan.map(item => {
+                const log = logs?.find(l => l.id_sesion === item.id);
+                return `
+                <div class="card-pro">
+                    <div class="w-full lg:w-1/3">
+                        <span class="text-orange-600 text-xs font-black uppercase tracking-widest italic block mb-2">${item.ejercicios.grupo_muscular}</span>
+                        <h4 class="text-4xl italic-black text-stone-900 leading-tight">${item.ejercicios.nombre}</h4>
+                        <span class="inline-block mt-3 bg-stone-100 text-stone-600 text-[10px] font-black px-4 py-1 rounded-full uppercase italic">${item.ejercicios.categoria}</span>
+                    </div>
+                    
+                    <div class="flex-1 grid grid-cols-3 gap-4 w-full text-center items-center">
+                        <div><p class="text-[10px] font-black text-stone-400 uppercase mb-1">Series</p><p class="text-3xl font-black italic text-stone-900">${item.series}</p></div>
+                        <div class="border-x-2 border-stone-100"><p class="text-[10px] font-black text-stone-400 uppercase mb-1">Reps</p><p class="text-3xl font-black italic text-stone-900">${item.repeticiones}</p></div>
+                        <div><p class="text-[10px] font-black text-stone-400 uppercase mb-1">Pausa</p><p class="text-3xl font-black italic text-stone-900">${item.descanso}</p></div>
+                    </div>
+
+                    <div class="flex flex-col items-center gap-2 bg-orange-50 p-6 rounded-[2rem] border-2 border-orange-100 w-full lg:w-40">
+                        <p class="text-[10px] font-black text-orange-600 uppercase tracking-widest">RPE</p>
+                        <input type="number" 
+                               id="rpe-${item.id}" 
+                               value="${log ? log.rpe_esfuerzo : ''}" 
+                               oninput="autoSave(${item.id}, this.value)"
+                               class="rpe-input" 
+                               placeholder="-">
+                    </div>
+                </div>`;
+            }).join('');
+
+            updateMetrics(logs);
+        }
+
+        let timeout = null;
+        function autoSave(planId, value) {
+            clearTimeout(timeout);
+            if (value >= 0 && value <= 10) {
+                timeout = setTimeout(async () => {
+                    await _supabase.from('seguimiento').upsert([{ id_sesion: planId, rpe_esfuerzo: parseInt(value) || 0, atleta_id: 1 }], { onConflict: 'id_sesion' });
+                    const { data: newLogs } = await _supabase.from('seguimiento').select('rpe_esfuerzo, id_sesion');
+                    updateMetrics(newLogs);
+                }, 400);
+            }
+        }
+
+        function updateMetrics(logs) {
+            if(!logs || logs.length === 0) return;
+            const validLogs = logs.filter(l => l.rpe_esfuerzo > 0);
+            const avg = validLogs.length ? (validLogs.reduce((a, b) => a + b.rpe_esfuerzo, 0) / validLogs.length).toFixed(1) : "0.0";
+            document.getElementById('weekly-avg').innerText = avg;
+            
+            performanceChart.data.labels = validLogs.map((_, i) => `E${i+1}`);
+            performanceChart.data.datasets[0].data = validLogs.map(l => l.rpe_esfuerzo);
+            performanceChart.update();
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            performanceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        borderColor: '#ea580c',
+                        backgroundColor: 'rgba(234, 88, 12, 0.1)',
+                        borderWidth: 6,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#000',
+                        pointRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, max: 10, ticks: { font: { weight: 'bold', size: 14 } } },
+                        x: { ticks: { font: { weight: 'bold', size: 12 } } }
+                    }
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            initDashboard();
+        });
+    </script>
+</body>
+</html>
