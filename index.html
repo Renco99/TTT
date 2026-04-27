@@ -10,7 +10,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { background-color: #fcfcf9; font-family: 'Inter', sans-serif; }
-        .chart-container { position: relative; width: 100%; height: 280px; }
+        .chart-container { position: relative; width: 100%; height: 250px; }
         .italic-black { font-style: italic; font-weight: 900; text-transform: uppercase; letter-spacing: -0.04em; }
         
         .grid-row {
@@ -20,19 +20,13 @@
             text-align: center;
         }
 
+        /* Ajuste de tamaño del input RPE */
         .rpe-input {
-            @apply w-16 bg-orange-50 border-b-4 border-orange-200 text-center text-2xl font-black text-orange-600 focus:outline-none focus:border-orange-500 transition-all placeholder-stone-200;
+            @apply w-6 h-8 bg-orange-50 border-b-2 border-orange-200 text-center text-xl font-black text-orange-600 focus:outline-none focus:border-orange-500 transition-all rounded-md;
         }
 
         .card-pro {
             @apply bg-white rounded-xl border border-stone-200 px-6 py-4 mb-2 transition-all hover:border-stone-400;
-        }
-
-        .day-btn {
-            @apply px-4 py-2 rounded-lg font-black italic text-xs uppercase transition-all border-2 border-stone-100 hover:bg-stone-100;
-        }
-        .day-btn.active {
-            @apply border-orange-600 bg-orange-600 text-white shadow-lg scale-105;
         }
 
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -45,24 +39,14 @@
         <header class="flex flex-col md:flex-row md:items-end justify-between mb-8 border-b-2 pb-6 border-stone-100">
             <div class="space-y-1">
                 <div class="flex items-center gap-3">
-                    <span id="atleta-nombre" class="bg-black text-white text-[10px] font-black px-2 py-0.5 rounded italic uppercase">NICO TAPIA</span>
-                    <span id="atleta-objetivo" class="text-orange-600 font-black text-[10px] uppercase tracking-widest italic">• PERFORMANCE</span>
+                    <span class="bg-black text-white text-[10px] font-black px-2 py-0.5 rounded italic uppercase">NICO TAPIA</span>
+                    <span class="text-orange-600 font-black text-[10px] uppercase tracking-widest italic">• PERFORMANCE</span>
                 </div>
-                <h1 class="text-4xl italic-black text-stone-900 leading-none">
-                    SESIÓN <span id="sesion-num" class="text-orange-600">#01</span>
-                </h1>
-                <p id="rango-semana" class="text-stone-400 font-black italic text-xs uppercase tracking-widest mt-1">CALCULANDO SEMANA...</p>
+                <h1 class="text-4xl italic-black text-stone-900 leading-none">DASHBOARD</h1>
+                <p id="rango-semana" class="text-stone-400 font-black italic text-xs uppercase mt-1">--/-- — --/--</p>
             </div>
             
-            <div class="flex gap-2 mt-4 md:mt-0" id="session-nav">
-                <button class="day-btn active" onclick="changeSession(1)">S1</button>
-                <button class="day-btn" onclick="changeSession(2)">S2</button>
-                <button class="day-btn" onclick="changeSession(3)">S3</button>
-                <button class="day-btn" onclick="changeSession(4)">S4</button>
-                <button class="day-btn" onclick="changeSession(5)">S5</button>
-            </div>
-
-            <div class="bg-stone-900 text-white p-4 rounded-2xl text-center min-w-[150px] shadow-xl border-b-4 border-orange-600 ml-4">
+            <div class="bg-stone-900 text-white p-4 rounded-2xl text-center min-w-[150px] shadow-xl border-b-4 border-orange-600">
                 <p class="text-[9px] font-black text-orange-500 uppercase tracking-widest italic">RPE PROMEDIO</p>
                 <div class="text-5xl italic-black" id="weekly-avg">0.0</div>
             </div>
@@ -74,7 +58,7 @@
             </div>
         </div>
 
-        <div class="grid-row px-8 mb-4 text-[13px] font-black text-stone-400 uppercase tracking-widest italic">
+        <div class="grid-row px-8 mb-4 text-[12px] font-black text-stone-400 uppercase tracking-widest italic">
             <div class="text-left">Ejercicio</div>
             <div>Categoría</div>
             <div>Series</div>
@@ -84,7 +68,8 @@
         </div>
 
         <div id="workout-container" class="space-y-2 pb-20">
-            </div>
+            <p class="text-center py-10 italic text-stone-400">Sincronizando planificación...</p>
+        </div>
     </div>
 
     <script>
@@ -93,7 +78,6 @@
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let performanceChart;
-        let currentSessionNum = 1;
 
         async function initDashboard() {
             setWeekRange();
@@ -101,7 +85,6 @@
             await fetchWorkoutData();
         }
 
-        // Calcula el rango Lunes - Domingo
         function setWeekRange() {
             const hoy = new Date();
             const diaSemana = hoy.getDay(); 
@@ -109,10 +92,8 @@
             const lunes = new Date(hoy.setDate(diff));
             const domingo = new Date(lunes);
             domingo.setDate(lunes.getDate() + 6);
-
-            const options = { day: 'numeric', month: 'short' };
-            document.getElementById('rango-semana').innerText = 
-                `Semana: ${lunes.toLocaleDateString('es-ES', options)} — ${domingo.toLocaleDateString('es-ES', options)}`;
+            const opt = { day: 'numeric', month: 'short' };
+            document.getElementById('rango-semana').innerText = `Semana: ${lunes.toLocaleDateString('es-ES', opt)} — ${domingo.toLocaleDateString('es-ES', opt)}`;
         }
 
         async function fetchWorkoutData() {
@@ -120,63 +101,31 @@
             
             const { data: plan, error } = await _supabase
                 .from('planificacion')
-                .select(`
-                    id, 
-                    series, 
-                    repeticiones, 
-                    descanso, 
-                    rpe, 
-                    sesion, 
-                    ejercicios ( 
-                        nombre, 
-                        grupo_muscular, 
-                        categoria 
-                    )
-                `)
-                .eq('sesion', currentSessionNum)
+                .select(`id, series, repeticiones, descanso, rpe, ejercicios ( nombre )`)
                 .order('id', { ascending: true });
 
             if (error) {
-                console.error("Error Supabase:", error);
-                container.innerHTML = `
-                    <div class="bg-red-50 border-2 border-red-200 p-8 rounded-2xl text-center">
-                        <p class="text-red-600 font-black italic uppercase">Error 400: Columna no encontrada</p>
-                        <p class="text-xs text-red-400 mt-2">${error.message}</p>
-                        <p class="text-[10px] text-red-300 mt-4">Asegúrate de que la tabla 'planificacion' tenga una columna llamada 'sesion' (número).</p>
-                    </div>`;
-                return;
-            }
-
-            if (!plan || plan.length === 0) {
-                container.innerHTML = `
-                    <div class="py-20 text-center border-2 border-dashed border-stone-200 rounded-3xl">
-                        <p class="font-black italic text-stone-300 uppercase tracking-widest text-xl">Sesión #${currentSessionNum} sin datos</p>
-                    </div>`;
-                updateUI([]);
+                console.error("Error detectado:", error);
+                container.innerHTML = `<div class="p-6 bg-red-50 text-red-500 rounded-xl text-center font-bold text-xs">Error 400: Revisa las columnas de tu tabla en Supabase.</div>`;
                 return;
             }
 
             container.innerHTML = plan.map(item => `
                 <div class="card-pro grid-row">
                     <div class="text-left">
-                        <span class="text-orange-600 text-[8px] font-black uppercase block mb-1">
-                            ${item.ejercicios?.grupo_muscular || 'GENERAL'}
-                        </span>
+                        <span class="text-orange-600 text-[8px] font-black uppercase block mb-1">STRENGTH</span>
                         <h4 class="text-xl font-black italic text-stone-900 leading-tight">
                             ${item.ejercicios?.nombre || 'Ejercicio'}
                         </h4>
                     </div>
-                    <div><span class="text-stone-300 text-[9px] font-black uppercase italic">${item.ejercicios?.categoria || '-'}</span></div>
-                    <div class="text-2xl font-black italic text-stone-900">${item.series}</div>
-                    <div class="text-2xl font-black italic text-stone-900">${item.repeticiones}</div>
-                    <div class="text-2xl font-black italic text-stone-900">${item.descanso}</div>
+                    <div class="text-stone-300 text-[9px] font-black uppercase italic">HYBRID</div>
+                    <div class="text-2xl font-black italic text-stone-900">${item.series || 0}</div>
+                    <div class="text-2xl font-black italic text-stone-900">${item.repeticiones || 0}</div>
+                    <div class="text-2xl font-black italic text-stone-900">${item.descanso || 0}</div>
                     <div class="flex justify-center">
-                        <input type="number" 
-                               id="rpe-${item.id}" 
-                               value="${item.rpe > 0 ? item.rpe : ''}" 
+                        <input type="number" value="${item.rpe || ''}" 
                                oninput="autoSave(${item.id}, this.value)"
-                               class="rpe-input" 
-                               placeholder="-">
+                               class="rpe-input" placeholder="-">
                     </div>
                 </div>`).join('');
 
@@ -188,44 +137,20 @@
             clearTimeout(timeout);
             timeout = setTimeout(async () => {
                 const rpeNum = parseInt(value) || 0;
-                
-                const { error } = await _supabase
-                    .from('planificacion')
-                    .update({ rpe: rpeNum })
-                    .eq('id', planId);
-                
-                if (!error) {
-                    const { data: updatedPlan } = await _supabase
-                        .from('planificacion')
-                        .select('rpe')
-                        .eq('sesion', currentSessionNum);
-                    
-                    updateUI(updatedPlan);
-                }
+                await _supabase.from('planificacion').update({ rpe: rpeNum }).eq('id', planId);
+                const { data: updated } = await _supabase.from('planificacion').select('rpe');
+                updateUI(updated);
             }, 400);
         }
 
         function updateUI(data) {
-            const validRPEs = (data || []).filter(d => d.rpe > 0).map(d => d.rpe);
-            
-            const avg = validRPEs.length 
-                ? (validRPEs.reduce((a, b) => a + b, 0) / validRPEs.length).toFixed(1) 
-                : "0.0";
-            
+            const valid = (data || []).filter(d => d.rpe > 0).map(d => d.rpe);
+            const avg = valid.length ? (valid.reduce((a, b) => a + b, 0) / valid.length).toFixed(1) : "0.0";
             document.getElementById('weekly-avg').innerText = avg;
             
-            performanceChart.data.labels = validRPEs.map((_, i) => `E${i+1}`);
-            performanceChart.data.datasets[0].data = validRPEs;
+            performanceChart.data.labels = valid.map((_, i) => `E${i+1}`);
+            performanceChart.data.datasets[0].data = valid;
             performanceChart.update();
-        }
-
-        function changeSession(id) {
-            currentSessionNum = id;
-            document.getElementById('sesion-num').innerText = `#0${id}`;
-            document.querySelectorAll('.day-btn').forEach((btn, index) => {
-                btn.classList.toggle('active', (index + 1) === id);
-            });
-            fetchWorkoutData();
         }
 
         function initChart() {
@@ -238,18 +163,14 @@
                         data: [],
                         borderColor: '#ea580c',
                         backgroundColor: 'rgba(234, 88, 12, 0.1)',
-                        borderWidth: 5,
-                        fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: '#000',
-                        pointRadius: 6
+                        borderWidth: 4, fill: true, tension: 0.4, pointBackgroundColor: '#000', pointRadius: 4
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
-                    scales: {
+                    scales: { 
                         y: { beginAtZero: true, max: 10, ticks: { font: { weight: 'bold' } } },
                         x: { grid: { display: false }, ticks: { font: { weight: 'bold' } } }
                     }
