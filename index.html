@@ -13,13 +13,26 @@
         .chart-container { position: relative; width: 100%; height: 280px; }
         .italic-black { font-style: italic; font-weight: 900; text-transform: uppercase; letter-spacing: -0.04em; }
         
-        /* Aumento de tamaño en inputs */
+        .grid-row {
+            display: grid;
+            grid-template-columns: 2.5fr 1fr 1fr 1fr 1fr 1fr;
+            align-items: center;
+            text-align: center;
+        }
+
         .rpe-input {
-            @apply w-24 bg-white border-2 border-orange-200 text-center text-3xl font-black text-orange-600 rounded-2xl py-3 focus:outline-none focus:border-orange-500 focus:ring-8 focus:ring-orange-500/10 transition-all;
+            @apply w-16 bg-orange-50 border-b-4 border-orange-200 text-center text-2xl font-black text-orange-600 focus:outline-none focus:border-orange-500 transition-all placeholder-stone-200;
         }
 
         .card-pro {
-            @apply bg-white rounded-[2.5rem] border-2 border-stone-100 p-8 flex flex-col lg:flex-row items-center gap-8 shadow-sm mb-6 transition-all hover:border-orange-200;
+            @apply bg-white rounded-xl border border-stone-200 px-6 py-4 mb-2 transition-all hover:border-stone-400;
+        }
+
+        .day-btn {
+            @apply px-4 py-2 rounded-lg font-black italic text-xs uppercase transition-all border-2 border-stone-100 hover:bg-stone-100;
+        }
+        .day-btn.active {
+            @apply border-orange-600 bg-orange-600 text-white shadow-lg scale-105;
         }
 
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -27,42 +40,50 @@
 </head>
 <body class="text-stone-800 antialiased">
 
-    <div class="max-w-6xl mx-auto px-4 py-10">
+    <div class="max-w-6xl mx-auto px-4 py-6">
         
-        <header class="flex flex-col md:flex-row md:items-end justify-between mb-10 border-b-4 pb-10 border-stone-100">
-            <div class="space-y-2">
+        <header class="flex flex-col md:flex-row md:items-end justify-between mb-8 border-b-2 pb-6 border-stone-100">
+            <div class="space-y-1">
                 <div class="flex items-center gap-3">
-                    <span id="atleta-nombre" class="bg-black text-white text-xs font-black px-3 py-1 rounded tracking-tighter uppercase italic">CARGANDO...</span>
-                    <span id="atleta-objetivo" class="text-orange-600 font-black text-xs uppercase tracking-widest italic">• OBJETIVO</span>
+                    <span id="atleta-nombre" class="bg-black text-white text-[10px] font-black px-2 py-0.5 rounded italic uppercase">NICO TAPIA</span>
+                    <span id="atleta-objetivo" class="text-orange-600 font-black text-[10px] uppercase tracking-widest italic">• PERFORMANCE</span>
                 </div>
-                <h1 class="text-6xl italic-black text-stone-900 leading-none">
-                    SESIÓN <span id="sesion-num" class="text-orange-600">#--</span>
+                <h1 class="text-4xl italic-black text-stone-900 leading-none">
+                    SESIÓN <span id="sesion-num" class="text-orange-600">#01</span>
                 </h1>
-                <p id="fecha-actual" class="text-stone-400 font-black italic text-lg uppercase tracking-tighter">--/--/--</p>
+                <p id="rango-semana" class="text-stone-400 font-black italic text-xs uppercase tracking-widest mt-1">CALCULANDO SEMANA...</p>
             </div>
-            <div class="mt-8 md:mt-0">
-                <div id="status-badge" class="text-xs font-black text-green-600 border-2 border-green-100 rounded-full px-8 py-3 uppercase tracking-widest italic flex items-center gap-3 bg-green-50">
-                    <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span> SISTEMA LIVE
-                </div>
+            
+            <div class="flex gap-2 mt-4 md:mt-0" id="session-nav">
+                <button class="day-btn active" onclick="changeSession(1)">S1</button>
+                <button class="day-btn" onclick="changeSession(2)">S2</button>
+                <button class="day-btn" onclick="changeSession(3)">S3</button>
+                <button class="day-btn" onclick="changeSession(4)">S4</button>
+                <button class="day-btn" onclick="changeSession(5)">S5</button>
+            </div>
+
+            <div class="bg-stone-900 text-white p-4 rounded-2xl text-center min-w-[150px] shadow-xl border-b-4 border-orange-600 ml-4">
+                <p class="text-[9px] font-black text-orange-500 uppercase tracking-widest italic">RPE PROMEDIO</p>
+                <div class="text-5xl italic-black" id="weekly-avg">0.0</div>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-12">
-            <div class="lg:col-span-3 bg-white rounded-[3rem] shadow-sm border-2 border-stone-100 p-10">
-                <h2 class="text-xs font-black text-stone-400 uppercase tracking-widest italic mb-8">Gráfica de Esfuerzo Percibido</h2>
-                <div class="chart-container">
-                    <canvas id="mainChart"></canvas>
-                </div>
-            </div>
-            
-            <div class="bg-stone-900 text-white rounded-[3rem] p-10 shadow-2xl flex flex-col justify-center items-center text-center">
-                <h3 class="text-orange-500 font-black uppercase text-xs tracking-widest mb-4 italic">Carga Total</h3>
-                <div class="text-8xl italic-black text-white" id="weekly-avg">0.0</div>
-                <div class="text-xs text-stone-500 uppercase font-black tracking-widest mt-4">RPE MEDIO</div>
+        <div class="bg-white rounded-3xl shadow-sm border border-stone-200 p-6 mb-8">
+            <div class="chart-container">
+                <canvas id="mainChart"></canvas>
             </div>
         </div>
 
-        <div id="workout-container" class="space-y-6 pb-24">
+        <div class="grid-row px-8 mb-4 text-[13px] font-black text-stone-400 uppercase tracking-widest italic">
+            <div class="text-left">Ejercicio</div>
+            <div>Categoría</div>
+            <div>Series</div>
+            <div>Reps</div>
+            <div>Pausa</div>
+            <div class="text-orange-600">RPE</div>
+        </div>
+
+        <div id="workout-container" class="space-y-2 pb-20">
             </div>
     </div>
 
@@ -72,80 +93,139 @@
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let performanceChart;
+        let currentSessionNum = 1;
 
         async function initDashboard() {
-            const { data: atleta } = await _supabase.from('atletas').select('*').limit(1).single();
-            if (atleta) {
-                document.getElementById('atleta-nombre').innerText = atleta.nombre;
-                document.getElementById('atleta-objetivo').innerText = `• ${atleta.objetivo}`;
-                document.getElementById('sesion-num').innerText = `#0${atleta.id}`;
-            }
-            
-            const hoy = new Date();
-            document.getElementById('fecha-actual').innerText = hoy.toLocaleDateString('es-ES', { 
-                weekday: 'long', day: 'numeric', month: 'long'
-            });
-
+            setWeekRange();
+            initChart();
             await fetchWorkoutData();
+        }
+
+        // Calcula el rango Lunes - Domingo
+        function setWeekRange() {
+            const hoy = new Date();
+            const diaSemana = hoy.getDay(); 
+            const diff = hoy.getDate() - diaSemana + (diaSemana === 0 ? -6 : 1); 
+            const lunes = new Date(hoy.setDate(diff));
+            const domingo = new Date(lunes);
+            domingo.setDate(lunes.getDate() + 6);
+
+            const options = { day: 'numeric', month: 'short' };
+            document.getElementById('rango-semana').innerText = 
+                `Semana: ${lunes.toLocaleDateString('es-ES', options)} — ${domingo.toLocaleDateString('es-ES', options)}`;
         }
 
         async function fetchWorkoutData() {
             const container = document.getElementById('workout-container');
-            const { data: plan } = await _supabase.from('planificacion').select(`id, series, repeticiones, descanso, ejercicios ( nombre, grupo_muscular, categoria )`);
-            const { data: logs } = await _supabase.from('seguimiento').select('rpe_esfuerzo, id_sesion');
+            
+            const { data: plan, error } = await _supabase
+                .from('planificacion')
+                .select(`
+                    id, 
+                    series, 
+                    repeticiones, 
+                    descanso, 
+                    rpe, 
+                    sesion, 
+                    ejercicios ( 
+                        nombre, 
+                        grupo_muscular, 
+                        categoria 
+                    )
+                `)
+                .eq('sesion', currentSessionNum)
+                .order('id', { ascending: true });
 
-            container.innerHTML = plan.map(item => {
-                const log = logs?.find(l => l.id_sesion === item.id);
-                return `
-                <div class="card-pro">
-                    <div class="w-full lg:w-1/3">
-                        <span class="text-orange-600 text-xs font-black uppercase tracking-widest italic block mb-2">${item.ejercicios.grupo_muscular}</span>
-                        <h4 class="text-4xl italic-black text-stone-900 leading-tight">${item.ejercicios.nombre}</h4>
-                        <span class="inline-block mt-3 bg-stone-100 text-stone-600 text-[10px] font-black px-4 py-1 rounded-full uppercase italic">${item.ejercicios.categoria}</span>
-                    </div>
-                    
-                    <div class="flex-1 grid grid-cols-3 gap-4 w-full text-center items-center">
-                        <div><p class="text-[10px] font-black text-stone-400 uppercase mb-1">Series</p><p class="text-3xl font-black italic text-stone-900">${item.series}</p></div>
-                        <div class="border-x-2 border-stone-100"><p class="text-[10px] font-black text-stone-400 uppercase mb-1">Reps</p><p class="text-3xl font-black italic text-stone-900">${item.repeticiones}</p></div>
-                        <div><p class="text-[10px] font-black text-stone-400 uppercase mb-1">Pausa</p><p class="text-3xl font-black italic text-stone-900">${item.descanso}</p></div>
-                    </div>
+            if (error) {
+                console.error("Error Supabase:", error);
+                container.innerHTML = `
+                    <div class="bg-red-50 border-2 border-red-200 p-8 rounded-2xl text-center">
+                        <p class="text-red-600 font-black italic uppercase">Error 400: Columna no encontrada</p>
+                        <p class="text-xs text-red-400 mt-2">${error.message}</p>
+                        <p class="text-[10px] text-red-300 mt-4">Asegúrate de que la tabla 'planificacion' tenga una columna llamada 'sesion' (número).</p>
+                    </div>`;
+                return;
+            }
 
-                    <div class="flex flex-col items-center gap-2 bg-orange-50 p-6 rounded-[2rem] border-2 border-orange-100 w-full lg:w-40">
-                        <p class="text-[10px] font-black text-orange-600 uppercase tracking-widest">RPE</p>
+            if (!plan || plan.length === 0) {
+                container.innerHTML = `
+                    <div class="py-20 text-center border-2 border-dashed border-stone-200 rounded-3xl">
+                        <p class="font-black italic text-stone-300 uppercase tracking-widest text-xl">Sesión #${currentSessionNum} sin datos</p>
+                    </div>`;
+                updateUI([]);
+                return;
+            }
+
+            container.innerHTML = plan.map(item => `
+                <div class="card-pro grid-row">
+                    <div class="text-left">
+                        <span class="text-orange-600 text-[8px] font-black uppercase block mb-1">
+                            ${item.ejercicios?.grupo_muscular || 'GENERAL'}
+                        </span>
+                        <h4 class="text-xl font-black italic text-stone-900 leading-tight">
+                            ${item.ejercicios?.nombre || 'Ejercicio'}
+                        </h4>
+                    </div>
+                    <div><span class="text-stone-300 text-[9px] font-black uppercase italic">${item.ejercicios?.categoria || '-'}</span></div>
+                    <div class="text-2xl font-black italic text-stone-900">${item.series}</div>
+                    <div class="text-2xl font-black italic text-stone-900">${item.repeticiones}</div>
+                    <div class="text-2xl font-black italic text-stone-900">${item.descanso}</div>
+                    <div class="flex justify-center">
                         <input type="number" 
                                id="rpe-${item.id}" 
-                               value="${log ? log.rpe_esfuerzo : ''}" 
+                               value="${item.rpe > 0 ? item.rpe : ''}" 
                                oninput="autoSave(${item.id}, this.value)"
                                class="rpe-input" 
                                placeholder="-">
                     </div>
-                </div>`;
-            }).join('');
+                </div>`).join('');
 
-            updateMetrics(logs);
+            updateUI(plan);
         }
 
         let timeout = null;
         function autoSave(planId, value) {
             clearTimeout(timeout);
-            if (value >= 0 && value <= 10) {
-                timeout = setTimeout(async () => {
-                    await _supabase.from('seguimiento').upsert([{ id_sesion: planId, rpe_esfuerzo: parseInt(value) || 0, atleta_id: 1 }], { onConflict: 'id_sesion' });
-                    const { data: newLogs } = await _supabase.from('seguimiento').select('rpe_esfuerzo, id_sesion');
-                    updateMetrics(newLogs);
-                }, 400);
-            }
+            timeout = setTimeout(async () => {
+                const rpeNum = parseInt(value) || 0;
+                
+                const { error } = await _supabase
+                    .from('planificacion')
+                    .update({ rpe: rpeNum })
+                    .eq('id', planId);
+                
+                if (!error) {
+                    const { data: updatedPlan } = await _supabase
+                        .from('planificacion')
+                        .select('rpe')
+                        .eq('sesion', currentSessionNum);
+                    
+                    updateUI(updatedPlan);
+                }
+            }, 400);
         }
 
-        function updateMetrics(logs) {
-            if(!logs || logs.length === 0) return;
-            const validLogs = logs.filter(l => l.rpe_esfuerzo > 0);
-            const avg = validLogs.length ? (validLogs.reduce((a, b) => a + b.rpe_esfuerzo, 0) / validLogs.length).toFixed(1) : "0.0";
+        function updateUI(data) {
+            const validRPEs = (data || []).filter(d => d.rpe > 0).map(d => d.rpe);
+            
+            const avg = validRPEs.length 
+                ? (validRPEs.reduce((a, b) => a + b, 0) / validRPEs.length).toFixed(1) 
+                : "0.0";
+            
             document.getElementById('weekly-avg').innerText = avg;
             
-            performanceChart.data.labels = validLogs.map((_, i) => `E${i+1}`);
-            performanceChart.data.datasets[0].data = validLogs.map(l => l.rpe_esfuerzo);
+            performanceChart.data.labels = validRPEs.map((_, i) => `E${i+1}`);
+            performanceChart.data.datasets[0].data = validRPEs;
             performanceChart.update();
+        }
+
+        function changeSession(id) {
+            currentSessionNum = id;
+            document.getElementById('sesion-num').innerText = `#0${id}`;
+            document.querySelectorAll('.day-btn').forEach((btn, index) => {
+                btn.classList.toggle('active', (index + 1) === id);
+            });
+            fetchWorkoutData();
         }
 
         function initChart() {
@@ -158,11 +238,11 @@
                         data: [],
                         borderColor: '#ea580c',
                         backgroundColor: 'rgba(234, 88, 12, 0.1)',
-                        borderWidth: 6,
+                        borderWidth: 5,
                         fill: true,
                         tension: 0.4,
                         pointBackgroundColor: '#000',
-                        pointRadius: 8
+                        pointRadius: 6
                     }]
                 },
                 options: {
@@ -170,17 +250,14 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        y: { beginAtZero: true, max: 10, ticks: { font: { weight: 'bold', size: 14 } } },
-                        x: { ticks: { font: { weight: 'bold', size: 12 } } }
+                        y: { beginAtZero: true, max: 10, ticks: { font: { weight: 'bold' } } },
+                        x: { grid: { display: false }, ticks: { font: { weight: 'bold' } } }
                     }
                 }
             });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            initChart();
-            initDashboard();
-        });
+        document.addEventListener('DOMContentLoaded', initDashboard);
     </script>
 </body>
 </html>
