@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi App de Entreno</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f9; padding: 20px; }
+        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 10px; }
+        h1 { color: #333; }
+        button { background: #3ecf8e; border: none; color: white; padding: 10px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h1>Mi Sesión de Hoy</h1>
+    <div id="lista-entrenamientos">Cargando rutinas...</div>
+
+    <script>
+        // CONFIGURACIÓN DE SUPABASE
+        const SUPABASE_URL = 'TU_URL_DE_SUPABASE';
+        const SUPABASE_KEY = 'TU_KEY_DE_SUPABASE';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function obtenerRutinas() {
+            const { data, error } = await supabase.from('entrenamientos').select('*');
+            
+            const contenedor = document.getElementById('lista-entrenamientos');
+            if (error) {
+                contenedor.innerHTML = "Error al cargar";
+                return;
+            }
+
+            contenedor.innerHTML = '';
+            data.forEach(item => {
+                contenedor.innerHTML += `
+                    <div class="card">
+                        <h3>${item.ejercicio}</h3>
+                        <p>${item.series} series x ${item.reps} reps</p>
+                        <button onclick="marcarHecho(${item.id})">Marcar como completado</button>
+                    </div>
+                `;
+            });
+        }
+
+        obtenerRutinas();
+    </script>
+</body>
+</html>
